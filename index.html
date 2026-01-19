@@ -1,0 +1,208 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<title>La torta perfecta</title>
+
+<style>
+body {
+  margin: 0;
+  background: #ffd6e8;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 100vh;
+  font-family: Arial, sans-serif;
+}
+canvas {
+  background: white;
+  border-radius: 16px;
+  box-shadow: 0 0 20px rgba(0,0,0,0.2);
+}
+</style>
+</head>
+
+<body>
+<canvas id="game" width="800" height="450"></canvas>
+
+<script>
+const canvas = document.getElementById("game");
+const ctx = canvas.getContext("2d");
+
+let player = { x:100, y:250, speed:4 };
+let keys = {};
+
+let level = 1;
+let gameStarted = false;
+let gameFinished = false;
+
+let ingredient = { x:500, y:250, emoji:"🍓" };
+
+let obstacles = [
+  { x:300, y:120, dir:1 },
+  { x:600, y:300, dir:-1 }
+];
+
+let hearts = [];
+let cakeStep = 0;
+
+window.addEventListener("keydown", e=>{
+  keys[e.key] = true;
+  if(e.key==="Enter" && !gameStarted) gameStarted = true;
+});
+window.addEventListener("keyup", e=> keys[e.key]=false);
+
+canvas.addEventListener("click", ()=>{
+  if(gameFinished && cakeStep < 4) cakeStep++;
+});
+
+function createHeart(){
+  hearts.push({ x:Math.random()*800, y:470, speed:1+Math.random()*2, size:18+Math.random()*10 });
+}
+
+function update(){
+  if(!gameStarted) return;
+
+  if(gameFinished){
+    if(Math.random()<0.05) createHeart();
+    hearts.forEach(h=> h.y -= h.speed);
+    return;
+  }
+
+  if(keys["ArrowRight"]) player.x += player.speed;
+  if(keys["ArrowLeft"]) player.x -= player.speed;
+  if(keys["ArrowUp"]) player.y -= player.speed;
+  if(keys["ArrowDown"]) player.y += player.speed;
+
+  // ingredientes que se mueven
+  if(level===1) ingredient.x += Math.sin(Date.now()*0.002)*1.5;
+  if(level===2) ingredient.y += Math.cos(Date.now()*0.002)*1.5;
+  if(level===3) ingredient.x += Math.sin(Date.now()*0.004)*2;
+
+  // obstáculos
+  obstacles.forEach(o=>{
+    o.y += o.dir*2;
+    if(o.y>380 || o.y<60) o.dir*=-1;
+
+    let dx = player.x-o.x;
+    let dy = player.y-o.y;
+    if(Math.sqrt(dx*dx+dy*dy)<28){
+      player.x=100; player.y=250;
+    }
+  });
+
+  // colisión ingrediente
+  let dx = player.x-ingredient.x;
+  let dy = player.y-ingredient.y;
+  if(Math.sqrt(dx*dx+dy*dy)<30 && level<4){
+    nextLevel();
+  }
+}
+
+function nextLevel(){
+  level++;
+  player.x=100; player.y=250;
+
+  if(level===2) ingredient.emoji="🥚";
+  if(level===3) ingredient.emoji="🍫";
+
+  if(level===4){
+    gameFinished=true;
+    cakeStep=0;
+  }
+
+  ingredient.x = Math.random()*600+100;
+  ingredient.y = Math.random()*300+80;
+}
+
+function draw(){
+  ctx.clearRect(0,0,800,450);
+
+  if(!gameStarted){
+    ctx.fillStyle="#ffe4f1";
+    ctx.fillRect(0,0,800,450);
+    ctx.font="42px Arial";
+    ctx.fillStyle="#d63384";
+    ctx.fillText("🍰 La torta perfecta 🍰",190,130);
+    ctx.font="22px Arial";
+    ctx.fillStyle="#444";
+    ctx.fillText("Hoy quiero hacer una torta muy especial…",190,200);
+    ctx.fillText("Una para alguien que amo mucho 💗",220,235);
+    ctx.fillText("¿Me ayudás a conseguir los ingredientes?",200,280);
+    ctx.fillText("ENTER para empezar",290,350);
+    return;
+  }
+
+  if(level===1) ctx.fillStyle="#ffe4ec";
+  if(level===2) ctx.fillStyle="#fff5cc";
+  if(level===3) ctx.fillStyle="#e0c3fc";
+  if(level===4) ctx.fillStyle="#ffd1dc";
+  ctx.fillRect(0,0,800,450);
+
+  if(!gameFinished){
+    ctx.font="40px Arial";
+    ctx.fillText("🧁",player.x,player.y);
+    ctx.font="36px Arial";
+    ctx.fillText(ingredient.emoji,ingredient.x,ingredient.y);
+
+    ctx.font="30px Arial";
+    obstacles.forEach(o=> ctx.fillText("💗",o.x,o.y));
+
+    ctx.font="18px Arial";
+    ctx.fillStyle="#555";
+    ctx.fillText("Ingrediente "+level+" de 3",20,30);
+  }
+
+  if(gameFinished){
+    let cx=400, cy=240;
+    ctx.font="100px Arial";
+    ctx.fillText("🎂",cx-50,cy);
+
+    if(cakeStep>=1){
+      ctx.font="38px Arial";
+      ctx.fillText("🍓",cx-90,cy-60);
+      ctx.fillText("🍓",cx+50,cy-60);
+    }
+
+    if(cakeStep>=2){
+      ctx.font="32px Arial";
+      ctx.fillText("🕯️",cx-10,cy-105);
+    }
+
+    if(cakeStep>=3){
+      ctx.font="30px Arial";
+      ctx.fillStyle="#d63384";
+      ctx.fillText("Feliz cumpleaños, Bonita 💗",210,330);
+      ctx.font="22px Arial";
+      ctx.fillStyle="#444";
+      ctx.fillText("Hice este jueguito para vos con mucho amor.",180,365);
+      ctx.fillText("Gracias por estar en mi vida ✨",260,395);
+    }
+
+    if(cakeStep>=4){
+      ctx.font="20px Arial";
+      ctx.fillStyle="#888";
+      ctx.fillText("– nini",370,425);
+    }
+
+    hearts.forEach(h=>{
+      ctx.font=h.size+"px Arial";
+      ctx.fillText("💗",h.x,h.y);
+    });
+
+    ctx.font="16px Arial";
+    ctx.fillStyle="#666";
+    ctx.fillText("Hacé click para decorar la torta 🎂",260,40);
+  }
+}
+
+function gameLoop(){
+  update();
+  draw();
+  requestAnimationFrame(gameLoop);
+}
+
+gameLoop();
+</script>
+</body>
+</html>
